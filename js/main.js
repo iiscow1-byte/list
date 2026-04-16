@@ -2,9 +2,14 @@ import routes from './routes.js';
 
 export const store = Vue.reactive({
     dark: JSON.parse(localStorage.getItem('dark')) || false,
+    isAdmin: localStorage.getItem('adminAuth') === 'true',
     toggleDark() {
         this.dark = !this.dark;
         localStorage.setItem('dark', JSON.stringify(this.dark));
+    },
+    logout() {
+        this.isAdmin = false;
+        localStorage.removeItem('adminAuth');
     },
 });
 
