@@ -112,6 +112,13 @@ export default {
 
                         <label class="admin-label">Thumbnail URL <span class="admin-hint">(optional — auto-uses YouTube)</span></label>
                         <input class="admin-input" v-model="editingLevel.thumbnail" @input="saveToLocalStorage" placeholder="Leave blank to use verification video thumbnail" />
+
+                        <label class="admin-label">Tier Color <span class="admin-hint">(outline color in list)</span></label>
+                        <div class="admin-tier-row">
+                            <input type="color" v-model="editingLevel.tier" @input="saveToLocalStorage" />
+                            <input class="admin-input" v-model="editingLevel.tier" @input="saveToLocalStorage" placeholder="#rrggbb or blank" />
+                            <button class="admin-btn admin-btn--secondary" @click="editingLevel.tier = ''; saveToLocalStorage()">Clear</button>
+                        </div>
                     </div>
 
                     <div class="admin-records-header">
@@ -134,7 +141,7 @@ export default {
                                 <td><input class="admin-input" v-model="record.user" @input="saveToLocalStorage" placeholder="Username" /></td>
                                 <td><input class="admin-input admin-input--url" v-model="record.link" @input="saveToLocalStorage" placeholder="https://..." /></td>
                                 <td><input class="admin-input admin-input--xs" type="number" v-model="record.percent" @input="saveToLocalStorage" min="1" max="100" /></td>
-                                <td><input class="admin-input admin-input--xs" type="number" v-model="record.hz" @input="saveToLocalStorage" placeholder="60" /></td>
+                                <td><input class="admin-input admin-input--xs" type="text" v-model="record.hz" @input="saveToLocalStorage" placeholder="60" /></td>
                                 <td class="admin-td-center"><input type="checkbox" v-model="record.mobile" @change="saveToLocalStorage" /></td>
                                 <td><button class="admin-icon-btn admin-icon-btn--danger" @click="removeRecord(ri)">✕</button></td>
                             </tr>
@@ -347,6 +354,7 @@ export default {
                 percentToQualify: 100,
                 password: '',
                 thumbnail: '',
+                tier: '',
                 records: [],
                 path: filename,
             };

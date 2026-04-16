@@ -34,6 +34,8 @@
     table-layout: auto;
     display: block;
     width: 100%;
+    border-spacing: 0 0.35rem;
+    border-collapse: separate;
 }
 .page-leaderboard .board .rank {
     padding-block: 1rem;
@@ -90,4 +92,50 @@
 }
 .page-leaderboard .player .table a:hover {
     text-decoration: underline;
+}
+
+/* Hardest level banner */
+.player-hardest {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--color-background-hover);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border-left: 4px solid var(--color-primary);
+}
+.player-hardest__thumb {
+    width: 7rem;
+    height: 4rem;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.player-hardest__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.5rem 0.75rem 0.5rem 0;
+}
+.player-hardest__label {
+    opacity: 0.6;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.player-hardest__info a:hover {
+    text-decoration: underline;
+}
+
+/* Score row thumbnails */
+.page-leaderboard .player .table .thumb-cell {
+    width: 4rem;
+    padding-right: 0.5rem;
+    vertical-align: middle;
+}
+.score-thumb {
+    width: 3.8rem;
+    height: 2.1rem;
+    object-fit: cover;
+    border-radius: 3px;
+    display: block;
 }

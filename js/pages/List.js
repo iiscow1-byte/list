@@ -38,7 +38,7 @@ export default {
                             <button
                                 @click="selected = entry.origIndex"
                                 :class="{ 'has-thumbnail': !!entry.thumb }"
-                                :style="entry.thumb ? { backgroundImage: \`url(\${entry.thumb})\` } : {}"
+                                :style="levelStyle(entry)"
                             >
                                 <span class="type-label-lg level-item-name">{{ entry.level?.name || \`Error (\${entry.err}.json)\` }}</span>
                                 <span class="level-item-verifier" v-if="entry.level?.verifier">Verified by {{ entry.level.verifier }}</span>
@@ -60,10 +60,6 @@ export default {
                         <li>
                             <div class="type-title-sm">ID</div>
                             <p>{{ level.id }}</p>
-                        </li>
-                        <li>
-                            <div class="type-title-sm">Password</div>
-                            <p>{{ level.password || 'Free to Copy' }}</p>
                         </li>
                     </ul>
                     <h2>Records</h2>
@@ -160,6 +156,7 @@ export default {
                     level,
                     err,
                     thumb: this.resolveThumbnail(level),
+                    tier: level?.tier || null,
                 }))
                 .filter(({ level }) => !q || level?.name?.toLowerCase().includes(q));
         },
@@ -203,6 +200,12 @@ export default {
     methods: {
         embed,
         score,
+        levelStyle(entry) {
+            const style = {};
+            if (entry.thumb) style.backgroundImage = `url(${entry.thumb})`;
+            if (entry.tier) style.borderLeft = `4px solid ${entry.tier}`;
+            return style;
+        },
         resolveThumbnail(level) {
             if (!level) return null;
             if (level.thumbnail) return level.thumbnail;

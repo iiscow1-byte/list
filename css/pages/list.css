@@ -33,6 +33,8 @@
 
 .page-list .list {
     table-layout: auto;
+    border-spacing: 0 0.3rem;
+    border-collapse: separate;
 }
 .page-list .list .rank {
     text-align: end;
@@ -67,6 +69,7 @@
 }
 .page-list .list .level button .level-item-verifier {
     font-size: 0.75rem;
+    font-weight: 700;
     opacity: 0.85;
 }
 
