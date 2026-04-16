@@ -1,5 +1,5 @@
 import { store } from "../main.js";
-import { embed } from "../util.js";
+import { embed, getYoutubeIdFromUrl, getThumbnailFromId } from "../util.js";
 import { score } from "../score.js";
 import { fetchEditors, fetchList } from "../content.js";
 
@@ -22,15 +22,26 @@ export default {
         </main>
         <main v-else class="page-list">
             <div class="list-container">
+                <input
+                    class="list-search"
+                    type="text"
+                    v-model="filterText"
+                    placeholder="Input text to Filter! here..."
+                />
                 <table class="list" v-if="list">
-                    <tr v-for="([level, err], i) in list">
+                    <tr v-for="entry in filteredList" :key="entry.origIndex">
                         <td class="rank">
-                            <p v-if="i + 1 <= 150" class="type-label-lg">#{{ i + 1 }}</p>
+                            <p v-if="entry.origIndex + 1 <= 150" class="type-label-lg">#{{ entry.origIndex + 1 }}</p>
                             <p v-else class="type-label-lg">Legacy</p>
                         </td>
-                        <td class="level" :class="{ 'active': selected == i, 'error': !level }">
-                            <button @click="selected = i">
-                                <span class="type-label-lg">{{ level?.name || \`Error (\${err}.json)\` }}</span>
+                        <td class="level" :class="{ 'active': selected == entry.origIndex, 'error': !entry.level }">
+                            <button
+                                @click="selected = entry.origIndex"
+                                :class="{ 'has-thumbnail': !!entry.thumb }"
+                                :style="entry.thumb ? { backgroundImage: \`url(\${entry.thumb})\` } : {}"
+                            >
+                                <span class="type-label-lg level-item-name">{{ entry.level?.name || \`Error (\${entry.err}.json)\` }}</span>
+                                <span class="level-item-verifier" v-if="entry.level?.verifier">Verified by {{ entry.level.verifier }}</span>
                             </button>
                         </td>
                     </tr>
@@ -133,12 +144,24 @@ export default {
         loading: true,
         selected: 0,
         errors: [],
+        filterText: '',
         roleIconMap,
         store
     }),
     computed: {
         level() {
             return this.list[this.selected][0];
+        },
+        filteredList() {
+            const q = this.filterText.trim().toLowerCase();
+            return this.list
+                .map(([level, err], i) => ({
+                    origIndex: i,
+                    level,
+                    err,
+                    thumb: this.resolveThumbnail(level),
+                }))
+                .filter(({ level }) => !q || level?.name?.toLowerCase().includes(q));
         },
         video() {
             if (!this.level.showcase) {
@@ -180,5 +203,13 @@ export default {
     methods: {
         embed,
         score,
+        resolveThumbnail(level) {
+            if (!level) return null;
+            if (level.thumbnail) return level.thumbnail;
+            const videoUrl = level.verification || level.showcase;
+            if (!videoUrl) return null;
+            const id = getYoutubeIdFromUrl(videoUrl);
+            return id ? getThumbnailFromId(id) : null;
+        },
     },
 };

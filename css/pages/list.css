@@ -5,6 +5,27 @@
 }
 .page-list .list-container {
     padding-inline: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Search / filter input */
+.list-search {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    background-color: var(--color-background-hover);
+    color: var(--color-on-background);
+    font-family: inherit;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    outline: none;
+    flex-shrink: 0;
+}
+.list-search:focus {
+    outline: 2px solid var(--color-primary);
 }
 .page-list .meta-container {
     padding-right: 2rem;
@@ -25,12 +46,49 @@
     color: var(--color-on-background);
     border: none;
     border-radius: 0.5rem;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     text-align: start;
     word-break: normal;
     overflow-wrap: anywhere;
     cursor: pointer;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
 }
+.page-list .list .level button .level-item-name,
+.page-list .list .level button .level-item-verifier {
+    position: relative;
+    z-index: 1;
+}
+.page-list .list .level button .level-item-verifier {
+    font-size: 0.75rem;
+    opacity: 0.85;
+}
+
+/* Dark overlay when thumbnail is present */
+.page-list .list .level button.has-thumbnail::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    pointer-events: none;
+}
+.page-list .list .level button.has-thumbnail {
+    color: white;
+    min-height: 3.5rem;
+}
+.page-list .list .level button.has-thumbnail:hover::before {
+    background: rgba(0, 0, 0, 0.35);
+}
+.page-list .list .level.active button.has-thumbnail::before {
+    background: rgba(0, 60, 180, 0.68);
+}
+
 .page-list .list .level.error button {
     color: var(--color-error);
     cursor: not-allowed;

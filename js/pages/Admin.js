@@ -109,6 +109,9 @@ export default {
 
                         <label class="admin-label">Password</label>
                         <input class="admin-input" v-model="editingLevel.password" @input="saveToLocalStorage" placeholder="Free to Copy" />
+
+                        <label class="admin-label">Thumbnail URL <span class="admin-hint">(optional — auto-uses YouTube)</span></label>
+                        <input class="admin-input" v-model="editingLevel.thumbnail" @input="saveToLocalStorage" placeholder="Leave blank to use verification video thumbnail" />
                     </div>
 
                     <div class="admin-records-header">
@@ -343,6 +346,7 @@ export default {
                 verification: '',
                 percentToQualify: 100,
                 password: '',
+                thumbnail: '',
                 records: [],
                 path: filename,
             };
