@@ -26,7 +26,7 @@ export default {
                     class="list-search"
                     type="text"
                     v-model="filterText"
-                    placeholder="Input text to Filter! here..."
+                    placeholder="Filter levels..."
                 />
                 <table class="list" v-if="list">
                     <tr v-for="entry in filteredList" :key="entry.origIndex">
@@ -57,37 +57,66 @@ export default {
                         <span class="level-detail-tier" v-if="level.tier">{{ level.tier }}</span>
                     </div>
                     <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
-                    <iframe class="video" id="videoframe" :src="video" frameborder="0"></iframe>
-                    <ul class="stats">
-                        <li>
-                            <div class="type-title-sm">Points when completed</div>
-                            <p>{{ score(selected + 1, 100, level.percentToQualify) }}</p>
-                        </li>
-                        <li>
-                            <div class="type-title-sm">ID</div>
-                            <p>{{ level.id }}</p>
-                        </li>
-                    </ul>
-                    <h2>Records</h2>
-                    <p v-if="selected + 1 <= 75"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
-                    <p v-else-if="selected +1 <= 150"><strong>100%</strong> or better to qualify</p>
-                    <p v-else>This level does not accept new records.</p>
-                    <table class="records">
-                        <tr v-for="record in level.records" class="record">
-                            <td class="percent">
-                                <p>{{ record.percent }}%</p>
-                            </td>
-                            <td class="user">
-                                <a :href="record.link" target="_blank" class="type-label-lg">{{ record.user }}</a>
-                            </td>
-                            <td class="mobile">
-                                <img v-if="record.mobile" :src="\`/assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
-                            </td>
-                            <td class="hz">
-                                <p>{{ record.hz }}Hz</p>
-                            </td>
-                        </tr>
-                    </table>
+                    <div class="level-content-grid">
+                        <div class="level-content-left">
+                            <p v-if="level.description" class="level-description">{{ level.description }}</p>
+                            <iframe class="video" id="videoframe" :src="video" frameborder="0"></iframe>
+                            <div v-if="level.skillsets && level.skillsets.length" class="level-skillsets">
+                                <span v-for="s in level.skillsets" :key="s" class="level-skill-tag">{{ s }}</span>
+                            </div>
+                            <ul class="stats">
+                                <li>
+                                    <div class="type-title-sm">Points when completed</div>
+                                    <p>{{ score(selected + 1, 100, level.percentToQualify) }}</p>
+                                </li>
+                                <li>
+                                    <div class="type-title-sm">ID</div>
+                                    <p>{{ level.id }}</p>
+                                </li>
+                                <li>
+                                    <div class="type-title-sm">Required FPS</div>
+                                    <p>{{ level.fps || 'N/A' }}</p>
+                                </li>
+                            </ul>
+                            <div v-if="level.positionHistory && level.positionHistory.length" class="level-position-history">
+                                <button class="level-pos-toggle" @click="showPositionHistory = !showPositionHistory">
+                                    Position History <span class="level-pos-caret">{{ showPositionHistory ? '^' : 'v' }}</span>
+                                </button>
+                                <table v-if="showPositionHistory" class="level-pos-table">
+                                    <thead>
+                                        <tr><th>Position</th><th>Change</th><th>Cause</th><th>Date</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(entry, ei) in level.positionHistory" :key="ei">
+                                            <td>#{{ entry.position }}</td>
+                                            <td>{{ entry.change || '—' }}</td>
+                                            <td>{{ entry.cause }}</td>
+                                            <td>{{ formatPosDate(entry.date) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="level-records-panel">
+                            <h2>Records</h2>
+                            <p v-if="selected + 1 <= 75" class="level-qualify-note"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
+                            <p v-else-if="selected + 1 <= 150" class="level-qualify-note"><strong>100%</strong> or better to qualify</p>
+                            <p v-else class="level-qualify-note">This level does not accept new records.</p>
+                            <p v-if="!level.records || !level.records.length" class="level-no-records">No records</p>
+                            <table v-else class="records">
+                                <tr v-for="record in level.records" class="record">
+                                    <td class="percent"><p>{{ record.percent }}%</p></td>
+                                    <td class="user">
+                                        <a :href="record.link" target="_blank" class="type-label-lg">{{ record.user }}</a>
+                                    </td>
+                                    <td class="mobile">
+                                        <img v-if="record.mobile" :src="\`/assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
+                                    </td>
+                                    <td class="hz"><p>{{ record.hz ? record.hz + 'Hz' : 'N/A' }}</p></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
                 </div>
                 <div v-else class="level" style="height: 100%; justify-content: center; align-items: center;">
                     <p>(ノಠ益ಠ)ノ彡┻━┻</p>
@@ -111,31 +140,8 @@ export default {
                             </li>
                         </ol>
                     </template>
-                    <h3>Submission Requirements</h3>
-                    <p>
-                        Achieved the record without using hacks (however, FPS bypass is allowed, up to 360fps)
-                    </p>
-                    <p>
-                        Achieved the record on the level that is listed on the site - please check the level ID before you submit a record
-                    </p>
-                    <p>
-                        Have either source audio or clicks/taps in the video. Edited audio only does not count
-                    </p>
-                    <p>
-                        The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exempt from this
-                    </p>
-                    <p>
-                        The recording must also show the player hit the endwall, or the completion will be invalidated.
-                    </p>
-                    <p>
-                        Do not use secret routes or bug routes
-                    </p>
-                    <p>
-                        Do not use easy modes, only a record of the unmodified level qualifies
-                    </p>
-                    <p>
-                        Once a level falls onto the Legacy List, we accept records for it for 24 hours after it falls off, then afterwards we never accept records for said level
-                    </p>
+                    <h3>{{ submissionReqTitle }}</h3>
+                    <p v-for="line in submissionReqLines" :key="line">{{ line }}</p>
                 </div>
             </div>
         </main>
@@ -148,7 +154,19 @@ export default {
         errors: [],
         filterText: '',
         roleIconMap,
-        store
+        store,
+        showPositionHistory: false,
+        submissionReqTitle: 'Submission Requirements',
+        submissionReqLines: [
+            'Achieved the record without using hacks (however, FPS bypass is allowed, up to 360fps)',
+            'Achieved the record on the level that is listed on the site - please check the level ID before you submit a record',
+            'Have either source audio or clicks/taps in the video. Edited audio only does not count',
+            'The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exempt from this',
+            'The recording must also show the player hit the endwall, or the completion will be invalidated.',
+            'Do not use secret routes or bug routes',
+            'Do not use easy modes, only a record of the unmodified level qualifies',
+            'Once a level falls onto the Legacy List, we accept records for it for 24 hours after it falls off, then afterwards we never accept records for said level',
+        ],
     }),
     computed: {
         level() {
@@ -201,6 +219,12 @@ export default {
             }
         }
 
+        try {
+            const r = JSON.parse(localStorage.getItem('adminSubmissionReqs'));
+            if (r?.title) this.submissionReqTitle = r.title;
+            if (r?.text) this.submissionReqLines = r.text.split('\n').filter(l => l.trim());
+        } catch {}
+
         this.loading = false;
     },
     methods: {
@@ -210,6 +234,10 @@ export default {
             const style = {};
             if (entry.thumb) style.backgroundImage = `url(${entry.thumb})`;
             return style;
+        },
+        formatPosDate(dateStr) {
+            if (!dateStr) return '';
+            return new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00')).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric' });
         },
         resolveThumbnail(level) {
             if (!level) return null;

@@ -6,6 +6,33 @@ import { round, score } from './score.js';
 const dir = '/data';
 
 export async function fetchList() {
+    // Use admin working data from localStorage if present
+    const storedOrder = localStorage.getItem('adminListOrder');
+    const storedLevels = localStorage.getItem('adminLevelData');
+    if (storedOrder && storedLevels) {
+        try {
+            const listOrder = JSON.parse(storedOrder);
+            const levelData = JSON.parse(storedLevels);
+            return listOrder.map((path) => {
+                const level = levelData[path];
+                if (!level) return [null, path];
+                const { path: _p, ...rest } = level;
+                return [
+                    {
+                        ...rest,
+                        path,
+                        records: (rest.records || []).slice().sort(
+                            (a, b) => b.percent - a.percent,
+                        ),
+                    },
+                    null,
+                ];
+            });
+        } catch {
+            // corrupt localStorage — fall through to server fetch
+        }
+    }
+
     const listResult = await fetch(`${dir}/_list.json`);
     try {
         const list = await listResult.json();
@@ -37,6 +64,13 @@ export async function fetchList() {
 }
 
 export async function fetchEditors() {
+    const storedEditors = localStorage.getItem('adminEditors');
+    if (storedEditors) {
+        try {
+            return JSON.parse(storedEditors);
+        } catch { /* fall through */ }
+    }
+
     try {
         const editorsResults = await fetch(`${dir}/_editors.json`);
         const editors = await editorsResults.json();

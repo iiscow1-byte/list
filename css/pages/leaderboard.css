@@ -98,29 +98,36 @@
 .player-hardest {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
     background: var(--color-background-hover);
-    border-radius: 0.5rem;
+    border-radius: 0.65rem;
     overflow: hidden;
-    border-left: 4px solid var(--color-primary);
+    border-left: 5px solid var(--color-primary);
 }
 .player-hardest__thumb {
-    width: 7rem;
-    height: 4rem;
+    width: 9rem;
+    height: 5.5rem;
     object-fit: cover;
     flex-shrink: 0;
 }
 .player-hardest__info {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.5rem 0.75rem 0.5rem 0;
+    gap: 0.4rem;
+    padding: 1rem 1rem 1rem 0;
 }
 .player-hardest__label {
     opacity: 0.6;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.07em;
+}
+.player-hardest__info a {
+    font-size: 1.1rem;
+}
+.player-hardest__info .type-label-md:last-child {
+    font-size: 0.9rem;
+    opacity: 0.7;
 }
 .player-hardest__info a:hover {
     text-decoration: underline;

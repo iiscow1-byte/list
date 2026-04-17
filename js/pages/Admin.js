@@ -71,8 +71,13 @@ export default {
                             v-for="(filename, i) in listOrder"
                             :key="filename"
                             class="admin-level-row"
-                            :class="{ active: editingIndex === i }"
+                            :class="{ active: editingIndex === i, 'drag-over': dragoverIndex === i && dragging !== i }"
                             @click="editingIndex = i"
+                            draggable="true"
+                            @dragstart="onDragStart(i)"
+                            @dragover.prevent="dragoverIndex = i"
+                            @drop.prevent="onDrop(i)"
+                            @dragend="onDragEnd"
                         >
                             <span class="admin-rank type-label-md">#{{ i + 1 }}</span>
                             <span class="admin-name type-label-lg">{{ levelData[filename]?.name || filename }}</span>
@@ -118,7 +123,18 @@ export default {
 
                         <label class="admin-label">Tier <span class="admin-hint">(number shown next to title)</span></label>
                         <input class="admin-input admin-input--xs" type="number" min="1" v-model="editingLevel.tier" @input="saveToLocalStorage" placeholder="e.g. 3" />
+
+                        <label class="admin-label">Required FPS <span class="admin-hint">(optional)</span></label>
+                        <input class="admin-input admin-input--xs" type="number" min="1" v-model="editingLevel.fps" @input="saveToLocalStorage" placeholder="e.g. 360" />
+
+                        <label class="admin-label">Skillsets <span class="admin-hint">(comma-separated)</span></label>
+                        <input class="admin-input" :value="skillsetsStr" @change="updateSkillsets($event.target.value)" placeholder="e.g. Ship, Wave, Timings" />
                     </div>
+
+                    <div class="admin-records-header" style="margin-top:0.5rem;">
+                        <h4 class="type-h4">Description</h4>
+                    </div>
+                    <textarea class="admin-textarea" v-model="editingLevel.description" @input="saveToLocalStorage" rows="3" placeholder="Short description shown above the video…"></textarea>
 
                     <div class="admin-records-header">
                         <h4 class="type-h4">Records</h4>
@@ -147,6 +163,32 @@ export default {
                         </tbody>
                     </table>
                     <p v-else class="admin-hint-text">No records yet.</p>
+
+                    <div class="admin-records-header" style="margin-top:1rem;">
+                        <h4 class="type-h4">Position History</h4>
+                        <button class="admin-btn admin-btn--secondary" @click="addPosEntry">+ Add Entry</button>
+                    </div>
+                    <table class="admin-table" v-if="editingLevel.positionHistory && editingLevel.positionHistory.length">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Change</th>
+                                <th>Cause</th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(entry, ei) in editingLevel.positionHistory" :key="ei">
+                                <td><input class="admin-input admin-input--xs" type="number" v-model="entry.position" @input="saveToLocalStorage" /></td>
+                                <td><input class="admin-input admin-input--xs" v-model="entry.change" @input="saveToLocalStorage" placeholder="↑1" /></td>
+                                <td><input class="admin-input" v-model="entry.cause" @input="saveToLocalStorage" placeholder="Placed at #1" /></td>
+                                <td><input class="admin-input" type="date" v-model="entry.date" @input="saveToLocalStorage" /></td>
+                                <td><button class="admin-icon-btn admin-icon-btn--danger" @click="removePosEntry(ei)">✕</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p v-else class="admin-hint-text">No position history yet. Entries are auto-logged when a level is moved.</p>
                 </div>
                 <div v-else class="admin-editor-panel admin-editor-empty">
                     <p class="type-body">Select a level from the list to edit it.</p>
@@ -286,35 +328,68 @@ export default {
                     </div>
                     <p v-if="webhookMsg" :class="webhookMsg.startsWith('Error') ? 'admin-error' : 'admin-success'">{{ webhookMsg }}</p>
                 </div>
+
+                <hr class="admin-divider" />
+
+                <h3 class="type-h3">Submission Requirements</h3>
+                <p class="type-body">Customize the title and text shown on the main list page.</p>
+                <div class="admin-form admin-form--narrow">
+                    <label class="admin-label">Section Title</label>
+                    <input class="admin-input" v-model="submissionReqTitle" placeholder="Submission Requirements" />
+                    <label class="admin-label">Requirements <span class="admin-hint">(one per line)</span></label>
+                    <textarea class="admin-textarea" v-model="submissionReqText" rows="10" placeholder="Each line is a separate requirement…"></textarea>
+                    <button class="admin-btn admin-btn--primary" @click="saveSubmissionReqs">Save</button>
+                    <p v-if="submissionReqMsg" class="admin-success">{{ submissionReqMsg }}</p>
+                </div>
             </div>
         </template>
 
     </main>
     `,
-    data: () => ({
-        store,
-        isFirstSetup: false,
-        setupPassword1: '',
-        setupPassword2: '',
-        setupError: '',
-        passwordInput: '',
-        loginError: false,
-        loading: false,
-        tab: 'levels',
-        listOrder: [],
-        levelData: {},
-        editingIndex: null,
-        editors: [],
-        newPassword: '',
-        confirmPassword: '',
-        passwordChangeMsg: '',
-        submissions: [],
-        submissionFilter: 'pending',
-        importJson: '',
-        importJsonMsg: '',
-        webhookUrl: localStorage.getItem('adminWebhookUrl') || '',
-        webhookMsg: '',
-    }),
+    data() {
+        const storedReqs = (() => {
+            try { return JSON.parse(localStorage.getItem('adminSubmissionReqs')); } catch { return null; }
+        })();
+        const defaultReqText = [
+            'Achieved the record without using hacks (however, FPS bypass is allowed, up to 360fps)',
+            'Achieved the record on the level that is listed on the site - please check the level ID before you submit a record',
+            'Have either source audio or clicks/taps in the video. Edited audio only does not count',
+            'The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exempt from this',
+            'The recording must also show the player hit the endwall, or the completion will be invalidated.',
+            'Do not use secret routes or bug routes',
+            'Do not use easy modes, only a record of the unmodified level qualifies',
+            'Once a level falls onto the Legacy List, we accept records for it for 24 hours after it falls off, then afterwards we never accept records for said level',
+        ].join('\n');
+        return {
+            store,
+            isFirstSetup: false,
+            setupPassword1: '',
+            setupPassword2: '',
+            setupError: '',
+            passwordInput: '',
+            loginError: false,
+            loading: false,
+            tab: 'levels',
+            listOrder: [],
+            levelData: {},
+            editingIndex: null,
+            editors: [],
+            newPassword: '',
+            confirmPassword: '',
+            passwordChangeMsg: '',
+            submissions: [],
+            submissionFilter: 'pending',
+            importJson: '',
+            importJsonMsg: '',
+            webhookUrl: localStorage.getItem('adminWebhookUrl') || '',
+            webhookMsg: '',
+            dragging: null,
+            dragoverIndex: null,
+            submissionReqTitle: storedReqs?.title ?? 'Submission Requirements',
+            submissionReqText: storedReqs?.text ?? defaultReqText,
+            submissionReqMsg: '',
+        };
+    },
     computed: {
         editingFilename() {
             return this.editingIndex !== null ? this.listOrder[this.editingIndex] : null;
@@ -324,6 +399,9 @@ export default {
         },
         creatorsStr() {
             return this.editingLevel?.creators?.join(', ') || '';
+        },
+        skillsetsStr() {
+            return this.editingLevel?.skillsets?.join(', ') || '';
         },
         filteredSubmissions() {
             return this.submissions.filter(s => s.status === this.submissionFilter);
@@ -404,6 +482,7 @@ export default {
             if (i === 0) return;
             const item = this.listOrder.splice(i, 1)[0];
             this.listOrder.splice(i - 1, 0, item);
+            this.logPositionHistory(item, i, `Moved up to #${i}`);
             if (this.editingIndex === i) this.editingIndex = i - 1;
             else if (this.editingIndex === i - 1) this.editingIndex = i;
             this.saveToLocalStorage();
@@ -412,6 +491,7 @@ export default {
             if (i >= this.listOrder.length - 1) return;
             const item = this.listOrder.splice(i, 1)[0];
             this.listOrder.splice(i + 1, 0, item);
+            this.logPositionHistory(item, i + 2, `Moved down to #${i + 2}`);
             if (this.editingIndex === i) this.editingIndex = i + 1;
             else if (this.editingIndex === i + 1) this.editingIndex = i;
             this.saveToLocalStorage();
@@ -439,6 +519,10 @@ export default {
                 password: '',
                 thumbnail: '',
                 tier: null,
+                fps: null,
+                description: '',
+                skillsets: [],
+                positionHistory: [],
                 records: [],
                 path: filename,
             };
@@ -565,6 +649,89 @@ export default {
         formatDate(ts) {
             if (!ts) return '';
             return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        },
+
+        // ── Drag and drop ────────────────────────────────────
+        onDragStart(i) {
+            this.dragging = i;
+        },
+        onDrop(i) {
+            if (this.dragging === null || this.dragging === i) {
+                this.dragging = null;
+                this.dragoverIndex = null;
+                return;
+            }
+            const from = this.dragging;
+            const item = this.listOrder.splice(from, 1)[0];
+            this.listOrder.splice(i, 0, item);
+            this.logPositionHistory(item, i + 1, `Moved to #${i + 1}`);
+            if (this.editingIndex === from) {
+                this.editingIndex = i;
+            } else if (this.editingIndex !== null) {
+                if (from < i && this.editingIndex > from && this.editingIndex <= i) this.editingIndex--;
+                else if (from > i && this.editingIndex >= i && this.editingIndex < from) this.editingIndex++;
+            }
+            this.dragging = null;
+            this.dragoverIndex = null;
+            this.saveToLocalStorage();
+        },
+        onDragEnd() {
+            this.dragging = null;
+            this.dragoverIndex = null;
+        },
+
+        // ── Skillsets ─────────────────────────────────────────
+        updateSkillsets(value) {
+            if (!this.editingLevel) return;
+            this.editingLevel.skillsets = value.split(',').map(s => s.trim()).filter(Boolean);
+            this.saveToLocalStorage();
+        },
+
+        // ── Position History ──────────────────────────────────
+        logPositionHistory(filename, newPosition, cause) {
+            const level = this.levelData[filename];
+            if (!level) return;
+            if (!level.positionHistory) level.positionHistory = [];
+            const prev = level.positionHistory;
+            const lastPos = prev.length > 0 ? prev[prev.length - 1].position : null;
+            let change = '';
+            if (lastPos !== null) {
+                const diff = lastPos - newPosition;
+                if (diff > 0) change = `↑${diff}`;
+                else if (diff < 0) change = `↓${Math.abs(diff)}`;
+            }
+            prev.push({
+                position: newPosition,
+                change,
+                cause,
+                date: new Date().toISOString().split('T')[0],
+            });
+        },
+        addPosEntry() {
+            if (!this.editingLevel) return;
+            if (!this.editingLevel.positionHistory) this.editingLevel.positionHistory = [];
+            const rank = this.editingIndex !== null ? this.editingIndex + 1 : 1;
+            this.editingLevel.positionHistory.push({
+                position: rank,
+                change: '',
+                cause: '',
+                date: new Date().toISOString().split('T')[0],
+            });
+            this.saveToLocalStorage();
+        },
+        removePosEntry(i) {
+            this.editingLevel.positionHistory.splice(i, 1);
+            this.saveToLocalStorage();
+        },
+
+        // ── Submission Requirements ───────────────────────────
+        saveSubmissionReqs() {
+            localStorage.setItem('adminSubmissionReqs', JSON.stringify({
+                title: this.submissionReqTitle,
+                text: this.submissionReqText,
+            }));
+            this.submissionReqMsg = 'Saved!';
+            setTimeout(() => { this.submissionReqMsg = ''; }, 2500);
         },
 
         // ── Webhook ───────────────────────────────────────────

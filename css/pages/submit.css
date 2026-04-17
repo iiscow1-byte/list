@@ -19,7 +19,8 @@ main.page-submit {
 .submit-header {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
 }
 
 /* Success state */
