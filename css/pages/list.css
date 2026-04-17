@@ -3,6 +3,17 @@
 .page-list .meta-container {
     padding-block: 2rem;
 }
+
+/* When a level is selected: hide meta column and expand level area */
+.page-list.level-selected {
+    grid-template-columns: minmax(16rem, 1fr) minmax(16rem, 4fr);
+}
+.page-list.level-selected .level-container {
+    max-width: none;
+}
+.page-list.level-selected .level-container .level {
+    max-width: none;
+}
 .page-list .list-container {
     padding-inline: 1rem;
     display: flex;
@@ -75,10 +86,11 @@
     gap: 0.5rem;
 }
 .page-list .list .level button .level-item-tier {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     font-weight: 700;
+    font-family: inherit;
     background: rgba(128, 128, 128, 0.25);
-    padding: 0.1rem 0.4rem;
+    padding: 0.15rem 0.5rem;
     border-radius: 3px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -102,13 +114,14 @@
     gap: 1rem;
 }
 .page-list .level-detail-tier {
-    font-size: 1.1rem;
+    font-size: 1.4rem;
     font-weight: 700;
+    font-family: inherit;
     background: var(--color-background-hover);
-    padding: 0.3rem 0.75rem;
+    padding: 0.3rem 0.9rem;
     border-radius: 4px;
     white-space: nowrap;
-    margin-top: 0.3rem;
+    margin-top: 0.2rem;
     flex-shrink: 0;
 }
 
@@ -182,9 +195,10 @@
 .page-list .level-skill-tag {
     background: var(--color-background-hover);
     border-radius: 4px;
-    padding: 0.25rem 0.65rem;
-    font-size: 0.82rem;
-    font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: inherit;
 }
 
 /* Records panel (right column) */

@@ -20,7 +20,7 @@ export default {
         <main v-if="loading">
             <Spinner></Spinner>
         </main>
-        <main v-else class="page-list">
+        <main v-else :class="['page-list', { 'level-selected': selected !== null }]">
             <div class="list-container">
                 <input
                     class="list-search"
@@ -118,11 +118,11 @@ export default {
                         </div>
                     </div>
                 </div>
-                <div v-else class="level" style="height: 100%; justify-content: center; align-items: center;">
+                <div v-else-if="selected !== null" class="level" style="height: 100%; justify-content: center; align-items: center;">
                     <p>(ノಠ益ಠ)ノ彡┻━┻</p>
                 </div>
             </div>
-            <div class="meta-container">
+            <div class="meta-container" v-show="selected === null">
                 <div class="meta">
                     <div class="errors" v-show="errors.length > 0">
                         <p class="error" v-for="error of errors">{{ error }}</p>
@@ -150,7 +150,7 @@ export default {
         list: [],
         editors: [],
         loading: true,
-        selected: 0,
+        selected: null,
         errors: [],
         filterText: '',
         roleIconMap,
@@ -170,6 +170,7 @@ export default {
     }),
     computed: {
         level() {
+            if (this.selected === null || !this.list[this.selected]) return null;
             return this.list[this.selected][0];
         },
         filteredList() {
@@ -185,16 +186,20 @@ export default {
                 .filter(({ level }) => !q || level?.name?.toLowerCase().includes(q));
         },
         video() {
+            if (!this.level) return '';
+            const fallback = 'https://www.youtube.com/watch?v=ISTl28wKSXc';
             if (!this.level.showcase) {
-                return embed(this.level.verification);
+                return embed(this.level.verification || fallback);
             }
-
             return embed(
                 this.toggledShowcase
                     ? this.level.showcase
-                    : this.level.verification
+                    : (this.level.verification || fallback)
             );
         },
+    },
+    watch: {
+        selected() { this.showPositionHistory = false; },
     },
     async mounted() {
         // Hide loading spinner
