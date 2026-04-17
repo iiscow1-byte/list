@@ -48,6 +48,9 @@ export default {
                 <div class="admin-tabs">
                     <button class="admin-tab" :class="{active: tab==='levels'}" @click="tab='levels'">Levels</button>
                     <button class="admin-tab" :class="{active: tab==='editors'}" @click="tab='editors'">Editors</button>
+                    <button class="admin-tab admin-tab--submissions" :class="{active: tab==='submissions'}" @click="tab='submissions'">
+                        Submissions<span v-if="pendingCount > 0" class="admin-badge">{{ pendingCount }}</span>
+                    </button>
                     <button class="admin-tab" :class="{active: tab==='export'}" @click="tab='export'">Export</button>
                     <button class="admin-tab" :class="{active: tab==='settings'}" @click="tab='settings'">Settings</button>
                 </div>
@@ -113,12 +116,8 @@ export default {
                         <label class="admin-label">Thumbnail URL <span class="admin-hint">(optional — auto-uses YouTube)</span></label>
                         <input class="admin-input" v-model="editingLevel.thumbnail" @input="saveToLocalStorage" placeholder="Leave blank to use verification video thumbnail" />
 
-                        <label class="admin-label">Tier Color <span class="admin-hint">(outline color in list)</span></label>
-                        <div class="admin-tier-row">
-                            <input type="color" v-model="editingLevel.tier" @input="saveToLocalStorage" />
-                            <input class="admin-input" v-model="editingLevel.tier" @input="saveToLocalStorage" placeholder="#rrggbb or blank" />
-                            <button class="admin-btn admin-btn--secondary" @click="editingLevel.tier = ''; saveToLocalStorage()">Clear</button>
-                        </div>
+                        <label class="admin-label">Tier <span class="admin-hint">(number shown next to title)</span></label>
+                        <input class="admin-input admin-input--xs" type="number" min="1" v-model="editingLevel.tier" @input="saveToLocalStorage" placeholder="e.g. 3" />
                     </div>
 
                     <div class="admin-records-header">
@@ -176,6 +175,62 @@ export default {
                 </div>
             </div>
 
+            <!-- SUBMISSIONS TAB -->
+            <div v-else-if="tab==='submissions'" class="admin-content admin-submissions">
+                <div class="admin-panel-header admin-panel-header--flat">
+                    <h3 class="type-h3">Level Submissions</h3>
+                    <div class="admin-sub-filter">
+                        <button class="admin-tab" :class="{active: submissionFilter==='pending'}" @click="submissionFilter='pending'">
+                            Pending<span v-if="pendingCount > 0" class="admin-badge">{{ pendingCount }}</span>
+                        </button>
+                        <button class="admin-tab" :class="{active: submissionFilter==='approved'}" @click="submissionFilter='approved'">Approved</button>
+                        <button class="admin-tab" :class="{active: submissionFilter==='denied'}" @click="submissionFilter='denied'">Denied</button>
+                    </div>
+                </div>
+
+                <p v-if="filteredSubmissions.length === 0" class="admin-hint-text" style="padding: 2rem 0;">
+                    No {{ submissionFilter }} submissions.
+                </p>
+
+                <div v-for="sub in filteredSubmissions" :key="sub.id" class="admin-sub-card">
+                    <div class="admin-sub-card__header">
+                        <span class="type-label-lg">{{ sub.user }} → {{ sub.levelName }}</span>
+                        <span class="admin-sub-meta">{{ formatDate(sub.timestamp) }}</span>
+                    </div>
+                    <div class="admin-sub-card__body">
+                        <div class="admin-sub-grid">
+                            <span class="admin-sub-key">Level</span><span>#{{ sub.levelRank }} {{ sub.levelName }}</span>
+                            <span class="admin-sub-key">Player</span><span>{{ sub.user }}</span>
+                            <span class="admin-sub-key">Percent</span><span>{{ sub.percent }}%</span>
+                            <span class="admin-sub-key">Hz</span><span>{{ sub.hz || '—' }}</span>
+                            <span class="admin-sub-key">Mobile</span><span>{{ sub.mobile ? 'Yes' : 'No' }}</span>
+                            <span class="admin-sub-key">Video</span>
+                            <a :href="sub.link" target="_blank" class="admin-sub-link">{{ sub.link }}</a>
+                            <template v-if="sub.notes">
+                                <span class="admin-sub-key">Notes</span><span>{{ sub.notes }}</span>
+                            </template>
+                        </div>
+                    </div>
+                    <div v-if="sub.status === 'pending'" class="admin-sub-card__actions">
+                        <button class="admin-btn admin-btn--primary" @click="approveSubmission(sub)">✓ Approve</button>
+                        <button class="admin-btn admin-btn--danger" @click="denySubmission(sub.id)">✕ Deny</button>
+                    </div>
+                    <div v-else class="admin-sub-card__status" :class="'admin-sub-status--' + sub.status">
+                        {{ sub.status === 'approved' ? '✓ Approved' : '✕ Denied' }}
+                    </div>
+                </div>
+
+                <div class="admin-sub-import">
+                    <h4 class="type-h4">Import Submission JSON</h4>
+                    <p class="type-body">If you received a submission JSON (e.g. from a Discord webhook), paste it here to add it to the queue.</p>
+                    <textarea class="admin-textarea" v-model="importJson" placeholder='Paste submission JSON here…' rows="4"></textarea>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <button class="admin-btn admin-btn--secondary" @click="importSubmissionJson">Import</button>
+                        <span v-if="importJsonMsg" :class="importJsonMsg.startsWith('Error') ? 'admin-error' : 'admin-success'">{{ importJsonMsg }}</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- EXPORT TAB -->
             <div v-else-if="tab==='export'" class="admin-content admin-export">
                 <h3 class="type-h3">Export Files</h3>
@@ -217,6 +272,20 @@ export default {
                     <button class="admin-btn admin-btn--primary" @click="changePassword">Update Password</button>
                     <p v-if="passwordChangeMsg" :class="passwordChangeMsg.includes('success') ? 'admin-success' : 'admin-error'">{{ passwordChangeMsg }}</p>
                 </div>
+
+                <hr class="admin-divider" />
+
+                <h3 class="type-h3">Discord Webhook <span class="admin-hint">(optional)</span></h3>
+                <p class="type-body">When set, every level submission will send a notification to this Discord channel. Create a webhook in your server's channel settings.</p>
+                <div class="admin-form admin-form--narrow">
+                    <label class="admin-label">Webhook URL</label>
+                    <input class="admin-input" type="url" v-model="webhookUrl" placeholder="https://discord.com/api/webhooks/…" />
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="admin-btn admin-btn--primary" @click="saveWebhookUrl">Save</button>
+                        <button class="admin-btn admin-btn--secondary" @click="webhookUrl=''; saveWebhookUrl()">Clear</button>
+                    </div>
+                    <p v-if="webhookMsg" :class="webhookMsg.startsWith('Error') ? 'admin-error' : 'admin-success'">{{ webhookMsg }}</p>
+                </div>
             </div>
         </template>
 
@@ -239,6 +308,12 @@ export default {
         newPassword: '',
         confirmPassword: '',
         passwordChangeMsg: '',
+        submissions: [],
+        submissionFilter: 'pending',
+        importJson: '',
+        importJsonMsg: '',
+        webhookUrl: localStorage.getItem('adminWebhookUrl') || '',
+        webhookMsg: '',
     }),
     computed: {
         editingFilename() {
@@ -250,6 +325,12 @@ export default {
         creatorsStr() {
             return this.editingLevel?.creators?.join(', ') || '';
         },
+        filteredSubmissions() {
+            return this.submissions.filter(s => s.status === this.submissionFilter);
+        },
+        pendingCount() {
+            return this.submissions.filter(s => s.status === 'pending').length;
+        },
     },
     async mounted() {
         this.isFirstSetup = localStorage.getItem('adminPasswordHash') === null;
@@ -258,6 +339,9 @@ export default {
     watch: {
         async 'store.isAdmin'(val) {
             if (val) await this.loadData();
+        },
+        tab(val) {
+            if (val === 'submissions') this.loadSubmissions();
         },
     },
     methods: {
@@ -354,7 +438,7 @@ export default {
                 percentToQualify: 100,
                 password: '',
                 thumbnail: '',
-                tier: '',
+                tier: null,
                 records: [],
                 path: filename,
             };
@@ -424,6 +508,75 @@ export default {
             localStorage.removeItem('adminEditors');
             this.editingIndex = null;
             await this.loadData();
+        },
+
+        // ── Submissions ──────────────────────────────────────
+        loadSubmissions() {
+            this.submissions = JSON.parse(localStorage.getItem('levelSubmissions') || '[]');
+        },
+        approveSubmission(sub) {
+            if (!confirm(`Approve ${sub.percent}% by ${sub.user} on "${sub.levelName}"?\n\nThis will add the record to the level.`)) return;
+            const level = this.levelData[sub.levelPath];
+            if (!level) {
+                alert(`Level "${sub.levelName}" (${sub.levelPath}) was not found in the working level data.\n\nMake sure the level list is loaded in the Levels tab.`);
+                return;
+            }
+            level.records.push({
+                user: sub.user,
+                link: sub.link,
+                percent: Number(sub.percent),
+                hz: sub.hz || null,
+                mobile: sub.mobile || false,
+            });
+            level.records.sort((a, b) => b.percent - a.percent);
+            this.saveToLocalStorage();
+            this.updateSubStatus(sub.id, 'approved');
+        },
+        denySubmission(id) {
+            if (!confirm('Deny this submission?')) return;
+            this.updateSubStatus(id, 'denied');
+        },
+        updateSubStatus(id, status) {
+            const subs = JSON.parse(localStorage.getItem('levelSubmissions') || '[]');
+            const idx = subs.findIndex(s => s.id === id);
+            if (idx !== -1) subs[idx].status = status;
+            localStorage.setItem('levelSubmissions', JSON.stringify(subs));
+            this.submissions = subs;
+        },
+        importSubmissionJson() {
+            this.importJsonMsg = '';
+            try {
+                const sub = JSON.parse(this.importJson);
+                if (!sub.id || !sub.levelName) throw new Error('Missing required fields (id, levelName)');
+                const subs = JSON.parse(localStorage.getItem('levelSubmissions') || '[]');
+                if (subs.find(s => s.id === sub.id)) {
+                    this.importJsonMsg = 'Error: A submission with this ID already exists.';
+                    return;
+                }
+                subs.push({ ...sub, status: sub.status || 'pending' });
+                localStorage.setItem('levelSubmissions', JSON.stringify(subs));
+                this.submissions = subs;
+                this.importJson = '';
+                this.importJsonMsg = 'Imported successfully.';
+            } catch (e) {
+                this.importJsonMsg = `Error: ${e.message}`;
+            }
+        },
+        formatDate(ts) {
+            if (!ts) return '';
+            return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        },
+
+        // ── Webhook ───────────────────────────────────────────
+        saveWebhookUrl() {
+            if (this.webhookUrl.trim()) {
+                localStorage.setItem('adminWebhookUrl', this.webhookUrl.trim());
+                this.webhookMsg = 'Webhook URL saved.';
+            } else {
+                localStorage.removeItem('adminWebhookUrl');
+                this.webhookMsg = 'Webhook URL cleared.';
+            }
+            setTimeout(() => { this.webhookMsg = ''; }, 3000);
         },
     },
 };

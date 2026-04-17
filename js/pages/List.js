@@ -40,7 +40,10 @@ export default {
                                 :class="{ 'has-thumbnail': !!entry.thumb }"
                                 :style="levelStyle(entry)"
                             >
-                                <span class="type-label-lg level-item-name">{{ entry.level?.name || \`Error (\${entry.err}.json)\` }}</span>
+                                <div class="level-item-header">
+                                    <span class="type-label-lg level-item-name">{{ entry.level?.name || \`Error (\${entry.err}.json)\` }}</span>
+                                    <span class="level-item-tier" v-if="entry.tier">{{ entry.tier }}</span>
+                                </div>
                                 <span class="level-item-verifier" v-if="entry.level?.verifier">Verified by {{ entry.level.verifier }}</span>
                             </button>
                         </td>
@@ -49,7 +52,10 @@ export default {
             </div>
             <div class="level-container">
                 <div class="level" v-if="level">
-                    <h1>{{ level.name }}</h1>
+                    <div class="level-title-row">
+                        <h1>{{ level.name }}</h1>
+                        <span class="level-detail-tier" v-if="level.tier">{{ level.tier }}</span>
+                    </div>
                     <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
                     <iframe class="video" id="videoframe" :src="video" frameborder="0"></iframe>
                     <ul class="stats">
@@ -203,7 +209,6 @@ export default {
         levelStyle(entry) {
             const style = {};
             if (entry.thumb) style.backgroundImage = `url(${entry.thumb})`;
-            if (entry.tier) style.borderLeft = `4px solid ${entry.tier}`;
             return style;
         },
         resolveThumbnail(level) {
