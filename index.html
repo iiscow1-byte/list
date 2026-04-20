@@ -37,6 +37,7 @@
         <script type="module" src="/js/main.js"></script>
     </head>
     <body id="app">
+        <SettingsPanel></SettingsPanel>
         <header :class="{ dark: store.dark }">
             <div class="logo">
                 <h2>Sample List</h2>
@@ -59,6 +60,9 @@
                     <span class="type-label-lg">Admin</span>
                 </router-link>
                 <div class="nav__actions">
+                    <button class="nav__icon nav__icon--settings" @click.prevent="store.settingsOpen = true" title="Settings">
+                        ⚙
+                    </button>
                     <button
                         class="nav__icon"
                         @click.prevent="store.toggleDark()"

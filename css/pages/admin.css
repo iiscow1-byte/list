@@ -377,40 +377,73 @@ main.page-admin {
 /* ── Export tab ─────────────────────────────────────────── */
 .admin-export {
     max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.admin-export > h3 {
+    margin-bottom: 0;
+}
+
+.admin-export > .type-body {
+    margin-top: -0.75rem;
 }
 
 .admin-export-actions {
-    margin-bottom: 1.25rem;
+    margin: 0;
 }
 
 .admin-export-list {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    margin-bottom: 2rem;
+    gap: 0.5rem;
+    margin: 0;
 }
 
 .admin-export-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.75rem;
+    padding: 0.65rem 1rem;
     background: var(--color-background-hover);
     border-radius: 4px;
 }
 
 .admin-export-reset {
     border-top: 1px solid var(--color-background-hover);
-    padding-top: 1.5rem;
+    padding-top: 1.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
     align-items: flex-start;
 }
 
 /* ── Settings tab ───────────────────────────────────────── */
 .admin-settings {
-    max-width: 480px;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.admin-settings > h3 {
+    margin-bottom: 0.4rem;
+}
+
+.admin-settings > .type-body {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.admin-settings .admin-form--narrow {
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.admin-settings .admin-divider {
+    margin: 2rem 0;
 }
 
 /* ── Submissions tab ────────────────────────────────────── */
@@ -514,12 +547,12 @@ main.page-admin {
 }
 
 .admin-sub-import {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
     border-top: 1px solid var(--color-background-hover);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .admin-textarea {

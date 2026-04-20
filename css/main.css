@@ -32,6 +32,7 @@ body {
     display: flex;
     flex-direction: column;
     margin: 0;
+    font-family: "Lexend Deca", sans-serif;
 }
 
 header,
@@ -93,4 +94,185 @@ input[type="checkbox"] {
     width: 1.25rem;
     cursor: pointer;
     margin: 0;
+}
+
+/* ── Settings icon in nav ─────────────────────────────── */
+.nav__icon--settings {
+    font-size: 1.35rem;
+    line-height: 1;
+    color: var(--color-on-primary);
+}
+
+/* ── Settings overlay & panel ─────────────────────────── */
+.settings-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+}
+
+.settings-panel {
+    background: var(--color-background);
+    color: var(--color-on-background);
+    width: 320px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.18);
+}
+
+.settings-panel.dark {
+    --color-background: #1c1b1f;
+    --color-on-background: white;
+    --color-background-hover: #27262c;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-background-hover);
+    flex-shrink: 0;
+}
+
+.settings-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--color-on-background);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    line-height: 1;
+}
+.settings-close:hover {
+    background: var(--color-background-hover);
+}
+
+.settings-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.settings-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.settings-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.settings-control {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.settings-range {
+    flex: 1;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+.settings-value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    min-width: 3rem;
+    text-align: right;
+}
+
+.settings-color {
+    width: 3rem;
+    height: 2.25rem;
+    border: 1px solid var(--color-background-hover);
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 0.15rem;
+    background: var(--color-background);
+}
+
+.settings-reset-color {
+    background: none;
+    border: 1px solid var(--color-background-hover);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--color-on-background);
+    font-size: 1rem;
+    padding: 0.2rem 0.5rem;
+    line-height: 1;
+}
+.settings-reset-color:hover {
+    background: var(--color-background-hover);
+}
+
+/* Toggle switch */
+.settings-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    width: fit-content;
+}
+.settings-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.settings-toggle-track {
+    width: 2.75rem;
+    height: 1.5rem;
+    background: var(--color-background-hover);
+    border-radius: 99px;
+    position: relative;
+    transition: background 0.2s;
+    display: block;
+}
+.settings-toggle input:checked + .settings-toggle-track {
+    background: var(--color-primary);
+}
+.settings-toggle-thumb {
+    position: absolute;
+    top: 0.2rem;
+    left: 0.2rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    display: block;
+}
+.settings-toggle input:checked + .settings-toggle-track .settings-toggle-thumb {
+    transform: translateX(1.25rem);
+}
+
+.settings-reset-btn {
+    margin-top: auto;
+    padding: 0.55rem 1rem;
+    background: none;
+    border: 1px solid var(--color-error);
+    color: var(--color-error);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background 0.15s;
+}
+.settings-reset-btn:hover {
+    background: var(--color-error);
+    color: var(--color-on-error);
 }

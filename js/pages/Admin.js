@@ -480,18 +480,22 @@ export default {
         },
         moveUp(i) {
             if (i === 0) return;
+            const displaced = this.listOrder[i - 1];
             const item = this.listOrder.splice(i, 1)[0];
             this.listOrder.splice(i - 1, 0, item);
             this.logPositionHistory(item, i, `Moved up to #${i}`);
+            this.logPositionHistory(displaced, i + 1, `Displaced down to #${i + 1}`);
             if (this.editingIndex === i) this.editingIndex = i - 1;
             else if (this.editingIndex === i - 1) this.editingIndex = i;
             this.saveToLocalStorage();
         },
         moveDown(i) {
             if (i >= this.listOrder.length - 1) return;
+            const displaced = this.listOrder[i + 1];
             const item = this.listOrder.splice(i, 1)[0];
             this.listOrder.splice(i + 1, 0, item);
             this.logPositionHistory(item, i + 2, `Moved down to #${i + 2}`);
+            this.logPositionHistory(displaced, i + 1, `Displaced up to #${i + 1}`);
             if (this.editingIndex === i) this.editingIndex = i + 1;
             else if (this.editingIndex === i + 1) this.editingIndex = i;
             this.saveToLocalStorage();
@@ -662,9 +666,24 @@ export default {
                 return;
             }
             const from = this.dragging;
+            // Capture displaced filenames before the splice changes indices
+            const displaced = from < i
+                ? this.listOrder.slice(from + 1, i + 1)
+                : this.listOrder.slice(i, from);
             const item = this.listOrder.splice(from, 1)[0];
             this.listOrder.splice(i, 0, item);
             this.logPositionHistory(item, i + 1, `Moved to #${i + 1}`);
+            if (from < i) {
+                displaced.forEach((filename, idx) => {
+                    const newPos = from + idx + 1;
+                    this.logPositionHistory(filename, newPos, `Displaced up to #${newPos}`);
+                });
+            } else {
+                displaced.forEach((filename, idx) => {
+                    const newPos = i + 1 + idx + 1;
+                    this.logPositionHistory(filename, newPos, `Displaced down to #${newPos}`);
+                });
+            }
             if (this.editingIndex === from) {
                 this.editingIndex = i;
             } else if (this.editingIndex !== null) {

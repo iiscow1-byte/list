@@ -189,14 +189,9 @@ export default {
         video() {
             if (!this.level) return '';
             const fallback = 'https://www.youtube.com/watch?v=ISTl28wKSXc';
-            if (!this.level.showcase) {
-                return embed(this.level.verification || fallback);
-            }
-            return embed(
-                this.toggledShowcase
-                    ? this.level.showcase
-                    : (this.level.verification || fallback)
-            );
+            const url = this.level.verification || fallback;
+            if (!this.level.showcase) return embed(url);
+            return embed(this.toggledShowcase ? this.level.showcase : url);
         },
     },
     watch: {
@@ -246,7 +241,7 @@ export default {
             return new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00')).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric' });
         },
         resolveThumbnail(level) {
-            if (!level) return null;
+            if (!level || !store.showThumbnails) return null;
             if (level.thumbnail) return level.thumbnail;
             const videoUrl = level.verification || level.showcase;
             if (!videoUrl) return null;
