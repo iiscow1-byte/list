@@ -174,6 +174,7 @@ export default {
             return this.list[this.selected][0];
         },
         filteredList() {
+            if (!this.list) return [];
             const q = this.filterText.trim().toLowerCase();
             return this.list
                 .map(([level, err], i) => ({
