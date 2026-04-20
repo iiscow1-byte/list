@@ -34,6 +34,8 @@
     table-layout: auto;
     display: block;
     width: 100%;
+    border-spacing: 0 0.35rem;
+    border-collapse: separate;
 }
 .page-leaderboard .board .rank {
     padding-block: 1rem;
@@ -90,4 +92,57 @@
 }
 .page-leaderboard .player .table a:hover {
     text-decoration: underline;
+}
+
+/* Hardest level banner */
+.player-hardest {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    background: var(--color-background-hover);
+    border-radius: 0.65rem;
+    overflow: hidden;
+    border-left: 5px solid var(--color-primary);
+}
+.player-hardest__thumb {
+    width: 9rem;
+    height: 5.5rem;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.player-hardest__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1rem 1rem 1rem 0;
+}
+.player-hardest__label {
+    opacity: 0.6;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+.player-hardest__info a {
+    font-size: 1.1rem;
+}
+.player-hardest__info .type-label-md:last-child {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+.player-hardest__info a:hover {
+    text-decoration: underline;
+}
+
+/* Score row thumbnails */
+.page-leaderboard .player .table .thumb-cell {
+    width: 4rem;
+    padding-right: 0.5rem;
+    vertical-align: middle;
+}
+.score-thumb {
+    width: 3.8rem;
+    height: 2.1rem;
+    object-fit: cover;
+    border-radius: 3px;
+    display: block;
 }

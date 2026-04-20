@@ -112,10 +112,19 @@ main.page-admin {
     align-items: center;
     gap: 0.5rem;
     padding: 0.45rem 0.75rem;
-    cursor: pointer;
+    cursor: grab;
     border-bottom: 1px solid var(--color-background-hover);
     transition: background 0.1s;
     user-select: none;
+}
+
+.admin-level-row:active {
+    cursor: grabbing;
+}
+
+.admin-level-row.drag-over {
+    border-top: 2px solid var(--color-primary);
+    background: rgba(var(--color-primary-rgb, 0, 102, 255), 0.07);
 }
 
 .admin-level-row:last-child {
@@ -182,8 +191,8 @@ main.page-admin {
 /* ── Form grid ──────────────────────────────────────────── */
 .admin-form {
     display: grid;
-    grid-template-columns: 160px 1fr;
-    gap: 0.5rem 0.75rem;
+    grid-template-columns: max-content 1fr;
+    gap: 0.5rem 1rem;
     align-items: center;
 }
 
@@ -402,6 +411,134 @@ main.page-admin {
 /* ── Settings tab ───────────────────────────────────────── */
 .admin-settings {
     max-width: 480px;
+}
+
+/* ── Submissions tab ────────────────────────────────────── */
+.admin-submissions {
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.admin-sub-filter {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-error);
+    color: white;
+    border-radius: 99px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.3rem;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+
+.admin-sub-card {
+    border: 1px solid var(--color-background-hover);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.admin-sub-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--color-background-hover);
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.admin-sub-meta {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    white-space: nowrap;
+}
+
+.admin-sub-card__body {
+    padding: 1rem;
+}
+
+.admin-sub-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 0.4rem 0.75rem;
+    font-size: 0.875rem;
+    align-items: baseline;
+}
+
+.admin-sub-key {
+    font-weight: 600;
+    opacity: 0.65;
+    white-space: nowrap;
+}
+
+.admin-sub-link {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-primary);
+    text-decoration: underline;
+    font-size: 0.85rem;
+}
+
+.admin-sub-card__actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--color-background-hover);
+}
+
+.admin-sub-card__status {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-top: 1px solid var(--color-background-hover);
+}
+
+.admin-sub-status--approved {
+    color: #16a34a;
+}
+
+.admin-sub-status--denied {
+    color: var(--color-error);
+}
+
+.admin-sub-import {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-background-hover);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.admin-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-background-hover);
+    background: var(--color-background);
+    color: var(--color-on-background);
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    resize: vertical;
+}
+
+.admin-divider {
+    border: none;
+    border-top: 1px solid var(--color-background-hover);
+    margin: 1.5rem 0;
 }
 
 /* ── Status messages ────────────────────────────────────── */

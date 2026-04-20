@@ -3,8 +3,40 @@
 .page-list .meta-container {
     padding-block: 2rem;
 }
+
+/* When a level is selected: hide meta column and expand level area */
+.page-list.level-selected {
+    grid-template-columns: minmax(16rem, 1fr) minmax(16rem, 4fr);
+}
+.page-list.level-selected .level-container {
+    max-width: none;
+}
+.page-list.level-selected .level-container .level {
+    max-width: none;
+}
 .page-list .list-container {
     padding-inline: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Search / filter input */
+.list-search {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    background-color: var(--color-background-hover);
+    color: var(--color-on-background);
+    font-family: inherit;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    outline: none;
+    flex-shrink: 0;
+}
+.list-search:focus {
+    outline: 2px solid var(--color-primary);
 }
 .page-list .meta-container {
     padding-right: 2rem;
@@ -12,6 +44,8 @@
 
 .page-list .list {
     table-layout: auto;
+    border-spacing: 0 0.5rem;
+    border-collapse: separate;
 }
 .page-list .list .rank {
     text-align: end;
@@ -25,12 +59,91 @@
     color: var(--color-on-background);
     border: none;
     border-radius: 0.5rem;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     text-align: start;
     word-break: normal;
     overflow-wrap: anywhere;
     cursor: pointer;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
 }
+.page-list .list .level button .level-item-name,
+.page-list .list .level button .level-item-verifier {
+    position: relative;
+    z-index: 1;
+}
+.page-list .list .level button .level-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+}
+.page-list .list .level button .level-item-tier {
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: inherit;
+    background: rgba(128, 128, 128, 0.25);
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.page-list .list .level.active button .level-item-tier,
+.page-list .list .level button.has-thumbnail .level-item-tier {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+.page-list .list .level button .level-item-verifier {
+    font-size: 0.75rem;
+    font-weight: 700;
+    opacity: 0.85;
+}
+
+/* Tier badge in the level detail panel */
+.page-list .level-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.page-list .level-detail-tier {
+    font-size: 1.4rem;
+    font-weight: 700;
+    font-family: inherit;
+    background: var(--color-background-hover);
+    padding: 0.3rem 0.9rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+}
+
+/* Dark overlay when thumbnail is present */
+.page-list .list .level button.has-thumbnail::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    pointer-events: none;
+}
+.page-list .list .level button.has-thumbnail {
+    color: white;
+    min-height: 3.5rem;
+}
+.page-list .list .level button.has-thumbnail:hover::before {
+    background: rgba(0, 0, 0, 0.35);
+}
+.page-list .list .level.active button.has-thumbnail::before {
+    background: rgba(0, 60, 180, 0.68);
+}
+
 .page-list .list .level.error button {
     color: var(--color-error);
     cursor: not-allowed;
@@ -47,9 +160,112 @@
 .page-list .level-container .level {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
     padding-right: 2rem;
-    max-width: 48rem;
+    max-width: 60rem;
+}
+
+/* Two-column grid: left (video/description/skillsets) | right (records) */
+.page-list .level-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 2rem;
+    align-items: start;
+}
+
+.page-list .level-content-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Description */
+.page-list .level-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    opacity: 0.85;
+}
+
+/* Skillsets */
+.page-list .level-skillsets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.page-list .level-skill-tag {
+    background: var(--color-background-hover);
+    border-radius: 4px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: inherit;
+}
+
+/* Records panel (right column) */
+.page-list .level-records-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-left: 1px solid var(--color-background-hover);
+    padding-left: 2rem;
+}
+.page-list .level-records-panel h2 {
+    margin: 0;
+}
+.page-list .level-qualify-note {
+    font-size: 0.875rem;
+    opacity: 0.75;
+    margin: 0;
+}
+.page-list .level-no-records {
+    font-size: 1.4rem;
+    font-weight: 700;
+    opacity: 0.35;
+    padding: 1.5rem 0;
+}
+
+/* Position History */
+.page-list .level-position-history {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.page-list .level-pos-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-on-background);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0;
+    text-align: left;
+}
+.page-list .level-pos-caret {
+    color: var(--color-primary);
+    font-size: 0.85em;
+}
+.page-list .level-pos-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+.page-list .level-pos-table th {
+    text-align: left;
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--color-background-hover);
+    font-size: 0.8rem;
+    opacity: 0.65;
+}
+.page-list .level-pos-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-background-hover);
+}
+.page-list .level-pos-table tr:last-child td {
+    border-bottom: none;
 }
 .page-list .level-container .level .level-authors {
     display: grid;
@@ -73,7 +289,8 @@
     gap: 1rem;
 }
 .page-list .level-container .level .records {
-    table-layout: fixed;
+    table-layout: auto;
+    width: 100%;
 }
 .page-list .level-container .level .records tr td:not(:last-child) {
     padding-right: 1rem;

@@ -48,6 +48,9 @@ export default {
                 <div class="admin-tabs">
                     <button class="admin-tab" :class="{active: tab==='levels'}" @click="tab='levels'">Levels</button>
                     <button class="admin-tab" :class="{active: tab==='editors'}" @click="tab='editors'">Editors</button>
+                    <button class="admin-tab admin-tab--submissions" :class="{active: tab==='submissions'}" @click="tab='submissions'">
+                        Submissions<span v-if="pendingCount > 0" class="admin-badge">{{ pendingCount }}</span>
+                    </button>
                     <button class="admin-tab" :class="{active: tab==='export'}" @click="tab='export'">Export</button>
                     <button class="admin-tab" :class="{active: tab==='settings'}" @click="tab='settings'">Settings</button>
                 </div>
@@ -68,8 +71,13 @@ export default {
                             v-for="(filename, i) in listOrder"
                             :key="filename"
                             class="admin-level-row"
-                            :class="{ active: editingIndex === i }"
+                            :class="{ active: editingIndex === i, 'drag-over': dragoverIndex === i && dragging !== i }"
                             @click="editingIndex = i"
+                            draggable="true"
+                            @dragstart="onDragStart(i)"
+                            @dragover.prevent="dragoverIndex = i"
+                            @drop.prevent="onDrop(i)"
+                            @dragend="onDragEnd"
                         >
                             <span class="admin-rank type-label-md">#{{ i + 1 }}</span>
                             <span class="admin-name type-label-lg">{{ levelData[filename]?.name || filename }}</span>
@@ -109,7 +117,24 @@ export default {
 
                         <label class="admin-label">Password</label>
                         <input class="admin-input" v-model="editingLevel.password" @input="saveToLocalStorage" placeholder="Free to Copy" />
+
+                        <label class="admin-label">Thumbnail URL <span class="admin-hint">(optional — auto-uses YouTube)</span></label>
+                        <input class="admin-input" v-model="editingLevel.thumbnail" @input="saveToLocalStorage" placeholder="Leave blank to use verification video thumbnail" />
+
+                        <label class="admin-label">Tier <span class="admin-hint">(number shown next to title)</span></label>
+                        <input class="admin-input admin-input--xs" type="number" min="1" v-model="editingLevel.tier" @input="saveToLocalStorage" placeholder="e.g. 3" />
+
+                        <label class="admin-label">Required FPS <span class="admin-hint">(optional)</span></label>
+                        <input class="admin-input admin-input--xs" type="number" min="1" v-model="editingLevel.fps" @input="saveToLocalStorage" placeholder="e.g. 360" />
+
+                        <label class="admin-label">Skillsets <span class="admin-hint">(comma-separated)</span></label>
+                        <input class="admin-input" :value="skillsetsStr" @change="updateSkillsets($event.target.value)" placeholder="e.g. Ship, Wave, Timings" />
                     </div>
+
+                    <div class="admin-records-header" style="margin-top:0.5rem;">
+                        <h4 class="type-h4">Description</h4>
+                    </div>
+                    <textarea class="admin-textarea" v-model="editingLevel.description" @input="saveToLocalStorage" rows="3" placeholder="Short description shown above the video…"></textarea>
 
                     <div class="admin-records-header">
                         <h4 class="type-h4">Records</h4>
@@ -131,13 +156,39 @@ export default {
                                 <td><input class="admin-input" v-model="record.user" @input="saveToLocalStorage" placeholder="Username" /></td>
                                 <td><input class="admin-input admin-input--url" v-model="record.link" @input="saveToLocalStorage" placeholder="https://..." /></td>
                                 <td><input class="admin-input admin-input--xs" type="number" v-model="record.percent" @input="saveToLocalStorage" min="1" max="100" /></td>
-                                <td><input class="admin-input admin-input--xs" type="number" v-model="record.hz" @input="saveToLocalStorage" placeholder="60" /></td>
+                                <td><input class="admin-input admin-input--xs" type="text" v-model="record.hz" @input="saveToLocalStorage" placeholder="60" /></td>
                                 <td class="admin-td-center"><input type="checkbox" v-model="record.mobile" @change="saveToLocalStorage" /></td>
                                 <td><button class="admin-icon-btn admin-icon-btn--danger" @click="removeRecord(ri)">✕</button></td>
                             </tr>
                         </tbody>
                     </table>
                     <p v-else class="admin-hint-text">No records yet.</p>
+
+                    <div class="admin-records-header" style="margin-top:1rem;">
+                        <h4 class="type-h4">Position History</h4>
+                        <button class="admin-btn admin-btn--secondary" @click="addPosEntry">+ Add Entry</button>
+                    </div>
+                    <table class="admin-table" v-if="editingLevel.positionHistory && editingLevel.positionHistory.length">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Change</th>
+                                <th>Cause</th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(entry, ei) in editingLevel.positionHistory" :key="ei">
+                                <td><input class="admin-input admin-input--xs" type="number" v-model="entry.position" @input="saveToLocalStorage" /></td>
+                                <td><input class="admin-input admin-input--xs" v-model="entry.change" @input="saveToLocalStorage" placeholder="↑1" /></td>
+                                <td><input class="admin-input" v-model="entry.cause" @input="saveToLocalStorage" placeholder="Placed at #1" /></td>
+                                <td><input class="admin-input" type="date" v-model="entry.date" @input="saveToLocalStorage" /></td>
+                                <td><button class="admin-icon-btn admin-icon-btn--danger" @click="removePosEntry(ei)">✕</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p v-else class="admin-hint-text">No position history yet. Entries are auto-logged when a level is moved.</p>
                 </div>
                 <div v-else class="admin-editor-panel admin-editor-empty">
                     <p class="type-body">Select a level from the list to edit it.</p>
@@ -162,6 +213,62 @@ export default {
                         <input class="admin-input" v-model="editor.name" @input="saveToLocalStorage" placeholder="Display name" />
                         <input class="admin-input admin-input--url" v-model="editor.link" @input="saveToLocalStorage" placeholder="Profile URL (optional)" />
                         <button class="admin-icon-btn admin-icon-btn--danger" @click="removeEditor(ei)">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUBMISSIONS TAB -->
+            <div v-else-if="tab==='submissions'" class="admin-content admin-submissions">
+                <div class="admin-panel-header admin-panel-header--flat">
+                    <h3 class="type-h3">Level Submissions</h3>
+                    <div class="admin-sub-filter">
+                        <button class="admin-tab" :class="{active: submissionFilter==='pending'}" @click="submissionFilter='pending'">
+                            Pending<span v-if="pendingCount > 0" class="admin-badge">{{ pendingCount }}</span>
+                        </button>
+                        <button class="admin-tab" :class="{active: submissionFilter==='approved'}" @click="submissionFilter='approved'">Approved</button>
+                        <button class="admin-tab" :class="{active: submissionFilter==='denied'}" @click="submissionFilter='denied'">Denied</button>
+                    </div>
+                </div>
+
+                <p v-if="filteredSubmissions.length === 0" class="admin-hint-text" style="padding: 2rem 0;">
+                    No {{ submissionFilter }} submissions.
+                </p>
+
+                <div v-for="sub in filteredSubmissions" :key="sub.id" class="admin-sub-card">
+                    <div class="admin-sub-card__header">
+                        <span class="type-label-lg">{{ sub.user }} → {{ sub.levelName }}</span>
+                        <span class="admin-sub-meta">{{ formatDate(sub.timestamp) }}</span>
+                    </div>
+                    <div class="admin-sub-card__body">
+                        <div class="admin-sub-grid">
+                            <span class="admin-sub-key">Level</span><span>#{{ sub.levelRank }} {{ sub.levelName }}</span>
+                            <span class="admin-sub-key">Player</span><span>{{ sub.user }}</span>
+                            <span class="admin-sub-key">Percent</span><span>{{ sub.percent }}%</span>
+                            <span class="admin-sub-key">Hz</span><span>{{ sub.hz || '—' }}</span>
+                            <span class="admin-sub-key">Mobile</span><span>{{ sub.mobile ? 'Yes' : 'No' }}</span>
+                            <span class="admin-sub-key">Video</span>
+                            <a :href="sub.link" target="_blank" class="admin-sub-link">{{ sub.link }}</a>
+                            <template v-if="sub.notes">
+                                <span class="admin-sub-key">Notes</span><span>{{ sub.notes }}</span>
+                            </template>
+                        </div>
+                    </div>
+                    <div v-if="sub.status === 'pending'" class="admin-sub-card__actions">
+                        <button class="admin-btn admin-btn--primary" @click="approveSubmission(sub)">✓ Approve</button>
+                        <button class="admin-btn admin-btn--danger" @click="denySubmission(sub.id)">✕ Deny</button>
+                    </div>
+                    <div v-else class="admin-sub-card__status" :class="'admin-sub-status--' + sub.status">
+                        {{ sub.status === 'approved' ? '✓ Approved' : '✕ Denied' }}
+                    </div>
+                </div>
+
+                <div class="admin-sub-import">
+                    <h4 class="type-h4">Import Submission JSON</h4>
+                    <p class="type-body">If you received a submission JSON (e.g. from a Discord webhook), paste it here to add it to the queue.</p>
+                    <textarea class="admin-textarea" v-model="importJson" placeholder='Paste submission JSON here…' rows="4"></textarea>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <button class="admin-btn admin-btn--secondary" @click="importSubmissionJson">Import</button>
+                        <span v-if="importJsonMsg" :class="importJsonMsg.startsWith('Error') ? 'admin-error' : 'admin-success'">{{ importJsonMsg }}</span>
                     </div>
                 </div>
             </div>
@@ -207,29 +314,82 @@ export default {
                     <button class="admin-btn admin-btn--primary" @click="changePassword">Update Password</button>
                     <p v-if="passwordChangeMsg" :class="passwordChangeMsg.includes('success') ? 'admin-success' : 'admin-error'">{{ passwordChangeMsg }}</p>
                 </div>
+
+                <hr class="admin-divider" />
+
+                <h3 class="type-h3">Discord Webhook <span class="admin-hint">(optional)</span></h3>
+                <p class="type-body">When set, every level submission will send a notification to this Discord channel. Create a webhook in your server's channel settings.</p>
+                <div class="admin-form admin-form--narrow">
+                    <label class="admin-label">Webhook URL</label>
+                    <input class="admin-input" type="url" v-model="webhookUrl" placeholder="https://discord.com/api/webhooks/…" />
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="admin-btn admin-btn--primary" @click="saveWebhookUrl">Save</button>
+                        <button class="admin-btn admin-btn--secondary" @click="webhookUrl=''; saveWebhookUrl()">Clear</button>
+                    </div>
+                    <p v-if="webhookMsg" :class="webhookMsg.startsWith('Error') ? 'admin-error' : 'admin-success'">{{ webhookMsg }}</p>
+                </div>
+
+                <hr class="admin-divider" />
+
+                <h3 class="type-h3">Submission Requirements</h3>
+                <p class="type-body">Customize the title and text shown on the main list page.</p>
+                <div class="admin-form admin-form--narrow">
+                    <label class="admin-label">Section Title</label>
+                    <input class="admin-input" v-model="submissionReqTitle" placeholder="Submission Requirements" />
+                    <label class="admin-label">Requirements <span class="admin-hint">(one per line)</span></label>
+                    <textarea class="admin-textarea" v-model="submissionReqText" rows="10" placeholder="Each line is a separate requirement…"></textarea>
+                    <button class="admin-btn admin-btn--primary" @click="saveSubmissionReqs">Save</button>
+                    <p v-if="submissionReqMsg" class="admin-success">{{ submissionReqMsg }}</p>
+                </div>
             </div>
         </template>
 
     </main>
     `,
-    data: () => ({
-        store,
-        isFirstSetup: false,
-        setupPassword1: '',
-        setupPassword2: '',
-        setupError: '',
-        passwordInput: '',
-        loginError: false,
-        loading: false,
-        tab: 'levels',
-        listOrder: [],
-        levelData: {},
-        editingIndex: null,
-        editors: [],
-        newPassword: '',
-        confirmPassword: '',
-        passwordChangeMsg: '',
-    }),
+    data() {
+        const storedReqs = (() => {
+            try { return JSON.parse(localStorage.getItem('adminSubmissionReqs')); } catch { return null; }
+        })();
+        const defaultReqText = [
+            'Achieved the record without using hacks (however, FPS bypass is allowed, up to 360fps)',
+            'Achieved the record on the level that is listed on the site - please check the level ID before you submit a record',
+            'Have either source audio or clicks/taps in the video. Edited audio only does not count',
+            'The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exempt from this',
+            'The recording must also show the player hit the endwall, or the completion will be invalidated.',
+            'Do not use secret routes or bug routes',
+            'Do not use easy modes, only a record of the unmodified level qualifies',
+            'Once a level falls onto the Legacy List, we accept records for it for 24 hours after it falls off, then afterwards we never accept records for said level',
+        ].join('\n');
+        return {
+            store,
+            isFirstSetup: false,
+            setupPassword1: '',
+            setupPassword2: '',
+            setupError: '',
+            passwordInput: '',
+            loginError: false,
+            loading: false,
+            tab: 'levels',
+            listOrder: [],
+            levelData: {},
+            editingIndex: null,
+            editors: [],
+            newPassword: '',
+            confirmPassword: '',
+            passwordChangeMsg: '',
+            submissions: [],
+            submissionFilter: 'pending',
+            importJson: '',
+            importJsonMsg: '',
+            webhookUrl: localStorage.getItem('adminWebhookUrl') || '',
+            webhookMsg: '',
+            dragging: null,
+            dragoverIndex: null,
+            submissionReqTitle: storedReqs?.title ?? 'Submission Requirements',
+            submissionReqText: storedReqs?.text ?? defaultReqText,
+            submissionReqMsg: '',
+        };
+    },
     computed: {
         editingFilename() {
             return this.editingIndex !== null ? this.listOrder[this.editingIndex] : null;
@@ -240,6 +400,15 @@ export default {
         creatorsStr() {
             return this.editingLevel?.creators?.join(', ') || '';
         },
+        skillsetsStr() {
+            return this.editingLevel?.skillsets?.join(', ') || '';
+        },
+        filteredSubmissions() {
+            return this.submissions.filter(s => s.status === this.submissionFilter);
+        },
+        pendingCount() {
+            return this.submissions.filter(s => s.status === 'pending').length;
+        },
     },
     async mounted() {
         this.isFirstSetup = localStorage.getItem('adminPasswordHash') === null;
@@ -248,6 +417,9 @@ export default {
     watch: {
         async 'store.isAdmin'(val) {
             if (val) await this.loadData();
+        },
+        tab(val) {
+            if (val === 'submissions') this.loadSubmissions();
         },
     },
     methods: {
@@ -310,6 +482,7 @@ export default {
             if (i === 0) return;
             const item = this.listOrder.splice(i, 1)[0];
             this.listOrder.splice(i - 1, 0, item);
+            this.logPositionHistory(item, i, `Moved up to #${i}`);
             if (this.editingIndex === i) this.editingIndex = i - 1;
             else if (this.editingIndex === i - 1) this.editingIndex = i;
             this.saveToLocalStorage();
@@ -318,6 +491,7 @@ export default {
             if (i >= this.listOrder.length - 1) return;
             const item = this.listOrder.splice(i, 1)[0];
             this.listOrder.splice(i + 1, 0, item);
+            this.logPositionHistory(item, i + 2, `Moved down to #${i + 2}`);
             if (this.editingIndex === i) this.editingIndex = i + 1;
             else if (this.editingIndex === i + 1) this.editingIndex = i;
             this.saveToLocalStorage();
@@ -343,6 +517,12 @@ export default {
                 verification: '',
                 percentToQualify: 100,
                 password: '',
+                thumbnail: '',
+                tier: null,
+                fps: null,
+                description: '',
+                skillsets: [],
+                positionHistory: [],
                 records: [],
                 path: filename,
             };
@@ -412,6 +592,158 @@ export default {
             localStorage.removeItem('adminEditors');
             this.editingIndex = null;
             await this.loadData();
+        },
+
+        // ── Submissions ──────────────────────────────────────
+        loadSubmissions() {
+            this.submissions = JSON.parse(localStorage.getItem('levelSubmissions') || '[]');
+        },
+        approveSubmission(sub) {
+            if (!confirm(`Approve ${sub.percent}% by ${sub.user} on "${sub.levelName}"?\n\nThis will add the record to the level.`)) return;
+            const level = this.levelData[sub.levelPath];
+            if (!level) {
+                alert(`Level "${sub.levelName}" (${sub.levelPath}) was not found in the working level data.\n\nMake sure the level list is loaded in the Levels tab.`);
+                return;
+            }
+            level.records.push({
+                user: sub.user,
+                link: sub.link,
+                percent: Number(sub.percent),
+                hz: sub.hz || null,
+                mobile: sub.mobile || false,
+            });
+            level.records.sort((a, b) => b.percent - a.percent);
+            this.saveToLocalStorage();
+            this.updateSubStatus(sub.id, 'approved');
+        },
+        denySubmission(id) {
+            if (!confirm('Deny this submission?')) return;
+            this.updateSubStatus(id, 'denied');
+        },
+        updateSubStatus(id, status) {
+            const subs = JSON.parse(localStorage.getItem('levelSubmissions') || '[]');
+            const idx = subs.findIndex(s => s.id === id);
+            if (idx !== -1) subs[idx].status = status;
+            localStorage.setItem('levelSubmissions', JSON.stringify(subs));
+            this.submissions = subs;
+        },
+        importSubmissionJson() {
+            this.importJsonMsg = '';
+            try {
+                const sub = JSON.parse(this.importJson);
+                if (!sub.id || !sub.levelName) throw new Error('Missing required fields (id, levelName)');
+                const subs = JSON.parse(localStorage.getItem('levelSubmissions') || '[]');
+                if (subs.find(s => s.id === sub.id)) {
+                    this.importJsonMsg = 'Error: A submission with this ID already exists.';
+                    return;
+                }
+                subs.push({ ...sub, status: sub.status || 'pending' });
+                localStorage.setItem('levelSubmissions', JSON.stringify(subs));
+                this.submissions = subs;
+                this.importJson = '';
+                this.importJsonMsg = 'Imported successfully.';
+            } catch (e) {
+                this.importJsonMsg = `Error: ${e.message}`;
+            }
+        },
+        formatDate(ts) {
+            if (!ts) return '';
+            return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        },
+
+        // ── Drag and drop ────────────────────────────────────
+        onDragStart(i) {
+            this.dragging = i;
+        },
+        onDrop(i) {
+            if (this.dragging === null || this.dragging === i) {
+                this.dragging = null;
+                this.dragoverIndex = null;
+                return;
+            }
+            const from = this.dragging;
+            const item = this.listOrder.splice(from, 1)[0];
+            this.listOrder.splice(i, 0, item);
+            this.logPositionHistory(item, i + 1, `Moved to #${i + 1}`);
+            if (this.editingIndex === from) {
+                this.editingIndex = i;
+            } else if (this.editingIndex !== null) {
+                if (from < i && this.editingIndex > from && this.editingIndex <= i) this.editingIndex--;
+                else if (from > i && this.editingIndex >= i && this.editingIndex < from) this.editingIndex++;
+            }
+            this.dragging = null;
+            this.dragoverIndex = null;
+            this.saveToLocalStorage();
+        },
+        onDragEnd() {
+            this.dragging = null;
+            this.dragoverIndex = null;
+        },
+
+        // ── Skillsets ─────────────────────────────────────────
+        updateSkillsets(value) {
+            if (!this.editingLevel) return;
+            this.editingLevel.skillsets = value.split(',').map(s => s.trim()).filter(Boolean);
+            this.saveToLocalStorage();
+        },
+
+        // ── Position History ──────────────────────────────────
+        logPositionHistory(filename, newPosition, cause) {
+            const level = this.levelData[filename];
+            if (!level) return;
+            if (!level.positionHistory) level.positionHistory = [];
+            const prev = level.positionHistory;
+            const lastPos = prev.length > 0 ? prev[prev.length - 1].position : null;
+            let change = '';
+            if (lastPos !== null) {
+                const diff = lastPos - newPosition;
+                if (diff > 0) change = `↑${diff}`;
+                else if (diff < 0) change = `↓${Math.abs(diff)}`;
+            }
+            prev.push({
+                position: newPosition,
+                change,
+                cause,
+                date: new Date().toISOString().split('T')[0],
+            });
+        },
+        addPosEntry() {
+            if (!this.editingLevel) return;
+            if (!this.editingLevel.positionHistory) this.editingLevel.positionHistory = [];
+            const rank = this.editingIndex !== null ? this.editingIndex + 1 : 1;
+            this.editingLevel.positionHistory.push({
+                position: rank,
+                change: '',
+                cause: '',
+                date: new Date().toISOString().split('T')[0],
+            });
+            this.saveToLocalStorage();
+        },
+        removePosEntry(i) {
+            this.editingLevel.positionHistory.splice(i, 1);
+            this.saveToLocalStorage();
+        },
+
+        // ── Submission Requirements ───────────────────────────
+        saveSubmissionReqs() {
+            localStorage.setItem('adminSubmissionReqs', JSON.stringify({
+                title: this.submissionReqTitle,
+                text: this.submissionReqText,
+            }));
+            this.submissionReqMsg = 'Saved!';
+            setTimeout(() => { this.submissionReqMsg = ''; }, 2500);
+        },
+
+        // ── Webhook ───────────────────────────────────────────
+        saveWebhookUrl() {
+            if (this.webhookUrl.trim()) {
+                localStorage.setItem('adminWebhookUrl', this.webhookUrl.trim());
+                this.webhookMsg = 'Webhook URL saved.';
+            } else {
+                localStorage.removeItem('adminWebhookUrl');
+                this.webhookMsg = 'Webhook URL cleared.';
+            }
+            setTimeout(() => { this.webhookMsg = ''; }, 3000);
         },
     },
 };

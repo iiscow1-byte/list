@@ -1,5 +1,5 @@
 import { fetchLeaderboard } from '../content.js';
-import { localize } from '../util.js';
+import { localize, getYoutubeIdFromUrl, getThumbnailFromId } from '../util.js';
 
 import Spinner from '../components/Spinner.js';
 
@@ -45,9 +45,22 @@ export default {
                     <div class="player">
                         <h1>#{{ selected + 1 }} {{ entry.user }}</h1>
                         <h3>{{ entry.total }}</h3>
+
+                        <div v-if="hardestLevel" class="player-hardest">
+                            <img v-if="ytThumb(hardestLevel.link)" class="player-hardest__thumb" :src="ytThumb(hardestLevel.link)" alt="" />
+                            <div class="player-hardest__info">
+                                <p class="type-label-md player-hardest__label">Hardest Level</p>
+                                <a class="type-label-lg" target="_blank" :href="hardestLevel.link">{{ hardestLevel.level }}</a>
+                                <p class="type-label-md">#{{ hardestLevel.rank }}</p>
+                            </div>
+                        </div>
+
                         <h2 v-if="entry.verified.length > 0">Verified ({{ entry.verified.length}})</h2>
                         <table class="table">
                             <tr v-for="score in entry.verified">
+                                <td class="thumb-cell">
+                                    <img v-if="ytThumb(score.link)" class="score-thumb" :src="ytThumb(score.link)" alt="" />
+                                </td>
                                 <td class="rank">
                                     <p>#{{ score.rank }}</p>
                                 </td>
@@ -62,6 +75,9 @@ export default {
                         <h2 v-if="entry.completed.length > 0">Completed ({{ entry.completed.length }})</h2>
                         <table class="table">
                             <tr v-for="score in entry.completed">
+                                <td class="thumb-cell">
+                                    <img v-if="ytThumb(score.link)" class="score-thumb" :src="ytThumb(score.link)" alt="" />
+                                </td>
                                 <td class="rank">
                                     <p>#{{ score.rank }}</p>
                                 </td>
@@ -76,6 +92,9 @@ export default {
                         <h2 v-if="entry.progressed.length > 0">Progressed ({{entry.progressed.length}})</h2>
                         <table class="table">
                             <tr v-for="score in entry.progressed">
+                                <td class="thumb-cell">
+                                    <img v-if="ytThumb(score.link)" class="score-thumb" :src="ytThumb(score.link)" alt="" />
+                                </td>
                                 <td class="rank">
                                     <p>#{{ score.rank }}</p>
                                 </td>
@@ -96,6 +115,12 @@ export default {
         entry() {
             return this.leaderboard[this.selected];
         },
+        hardestLevel() {
+            if (!this.entry) return null;
+            const all = [...this.entry.verified, ...this.entry.completed];
+            if (all.length === 0) return null;
+            return all.reduce((best, cur) => cur.rank < best.rank ? cur : best);
+        },
     },
     async mounted() {
         const [leaderboard, err] = await fetchLeaderboard();
@@ -106,5 +131,10 @@ export default {
     },
     methods: {
         localize,
+        ytThumb(url) {
+            if (!url) return null;
+            const id = getYoutubeIdFromUrl(url);
+            return id ? getThumbnailFromId(id) : null;
+        },
     },
 };
